@@ -4,7 +4,7 @@ The website already uses Supabase for accounts, events, and tickets. Follow this
 
 ## Step 1. Create the database (free, about 15 minutes)
 1. Go to supabase.com and create an account, then click **New project**. Choose a strong database password and a region close to India (Mumbai if offered).
-2. Open **SQL Editor > New query**, paste everything from `database.sql`, and click **Run**.
+2. Open **SQL Editor > New query**, paste everything from `database.sql`, and click **Run**. Do this full-file setup only for a new/empty project. If Occasion Pass tables already exist, apply only the missing migration sections described in `START-HERE.md`; do not rerun the initial `create table` statements.
 3. Open **Project Settings > API** and copy the **Project URL** and the **anon public key**. The anon key is safe to put in website code. The **service_role key** is secret: never put it in the website.
 
 What this gives you: events are public to read, only organizers can create them, and every created event appears for all visitors on its festival page.

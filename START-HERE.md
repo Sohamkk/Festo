@@ -1,7 +1,9 @@
 # Occasion Pass: connected to Supabase
 
 ## Fix: "Could not find the table 'public.events_public' in the schema cache"
-The database was not fully set up. Open Supabase > SQL Editor > New query, paste the **whole** `database.sql`, press **Run**, then reload the website. The file is safe to run again on an existing project.
+The website can reach Supabase, but the database view it reads has not been created. In Supabase, open **SQL Editor > New query**, paste the full `database.sql`, and press **Run** only if this is a new/empty project; then reload the website.
+
+If you have already created the Occasion Pass tables, do not rerun the full file: its initial `create table` statements are for a new project. Instead, run the `ADDED IN V2` section if it has not been applied, followed by the complete `RAZORPAY CHECKOUT` section at the bottom. That section creates/grants `events_public`, refreshes the schema cache, and installs the paid-booking tables and functions.
 
 ## Payments need the Edge Functions
 The folder `supabase/functions` contains `create-order`, `verify-payment` and `payment-webhook`. Deploy them as described in SETUP-GUIDE.md Step 4. Without them the Pay button cannot open Razorpay.
@@ -13,7 +15,7 @@ The folder `supabase/functions` contains `create-order`, `verify-payment` and `p
 
 ## Run it in 5 steps
 1. Create a Supabase project (supabase.com > New project).
-2. SQL Editor > New query > paste all of `database.sql` > Run for a new project. For an existing project, apply any missing `ADDED IN V2` migration and the `RAZORPAY CHECKOUT` section at the bottom.
+2. For a new project, run all of `database.sql` in SQL Editor. For an existing project, do not rerun the initial table-creation statements; apply any missing `ADDED IN V2` migration and then the complete `RAZORPAY CHECKOUT` section at the bottom.
 3. Authentication > Providers: keep **Email** on. For quick testing, turn **Confirm email** off (Authentication > Sign In / Providers > Email).
 4. Project Settings > API: copy the Project URL and the anon (publishable) key into `config.js`.
 5. Put the whole folder on Vercel or Netlify (drag and drop). You can also run it locally with: `npx serve .` inside this folder, then open the address it shows.
