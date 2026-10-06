@@ -53,22 +53,24 @@ if(miss.length){const {data:ev}=await sb.from('events_public').select('*').in('i
 async function refresh(){await loadEvents();await loadUser();render()}
 
 /* ---- theme + layout ---- */
-let theme='halloween',view='home';
-function setTheme(t){theme=t;document.documentElement.dataset.theme=t;colors(t);const c=TH[t],fx=$('#fx');fx.className=c.up?'up':'';fx.innerHTML='';
+let theme='halloween',view='home',eventFilter='all';
+function setTheme(t,filterEvents=true){theme=t;if(filterEvents)eventFilter=t;document.documentElement.dataset.theme=t;colors(t);const c=TH[t],fx=$('#fx');fx.className=c.up?'up':'';fx.innerHTML='';
 for(let i=0;i<16;i++){const s=document.createElement('span');s.textContent=c.fx[i%c.fx.length];s.style.left=Math.random()*100+'%';s.style.fontSize=(16+Math.random()*22)+'px';s.style.animationDuration=(9+Math.random()*10)+'s';s.style.animationDelay=(-Math.random()*15)+'s';fx.appendChild(s)}render()}
+function showAllEvents(){eventFilter='all';render()}
 function render(){const u=me();
 $('#navr').innerHTML=u?`<button class="btn ghost" id="nh">Events</button> <button class="btn" id="np">${u.cat==='organizer'?'Organizer dashboard':`${esc(u.name.split(' ')[0])} · Profile`}</button>`:`<button class="btn" id="nl">Login / Register</button>`;
 if(u){$('#nh').onclick=()=>{view='home';render()};$('#np').onclick=()=>{view='profile';render()}}else{$('#nl').onclick=()=>openAuth('login')}
 view==='profile'&&u?profile(u):home()}
 
 function home(){const c=TH[theme];
-const list=db.events.filter(e=>e.t===theme);
+const list=db.events.filter(e=>eventFilter==='all'||e.t===eventFilter);
 $('#main').innerHTML=(sb?'':`<div class="card" style="margin-top:10px"><b>Setup needed:</b> open <code>config.js</code> and paste your Supabase Project URL and anon key. See START-HERE.md.</div>`)+
-`<h1>${c.e} ${c.n} events</h1><p class="sub">Pick an occasion, book an event by a verified organizer, and get a QR ticket for entry.</p>
-<div class="chips" role="group" aria-label="Choose occasion">${Object.keys(TH).map(k=>`<button class="chip" data-t="${k}" aria-pressed="${k===theme}">${TH[k].e} ${TH[k].n}</button>`).join('')}</div>
-<div class="grid">${list.map(e=>`<article class="card"><div class="big">${c.e}</div><h3>${esc(e.title)}</h3>
-<span class="badge">${esc(TH[e.t].n)}</span><div class="meta">📅 ${fmt(e.date)}</div><div class="meta">📍 ${esc(e.venue)}</div><div class="meta">by ${esc(e.org)} · ${e.seats} seats left</div>
-<div class="row"><span class="price">₹${e.price}</span><button class="btn" data-book="${e.id}" ${e.seats<1?'disabled':''}>${e.seats<1?'Sold out':'Book now'}</button></div></article>`).join('')||'<p class="sub">No events yet for this occasion. When an organizer creates one, it will appear here for everyone.</p>'}</div>`;
+`<h1>${eventFilter==='all'?'Upcoming events':`${c.e} ${c.n} events`}</h1><p class="sub">Browse events in every category or filter by occasion. Book an event by a verified organizer and get a QR ticket.</p>
+<div class="chips" role="group" aria-label="Filter by occasion"><button class="chip" data-all-events aria-pressed="${eventFilter==='all'}">✨ All events</button>${Object.keys(TH).map(k=>`<button class="chip" data-t="${k}" aria-pressed="${k===eventFilter}">${TH[k].e} ${TH[k].n}</button>`).join('')}</div>
+<div class="grid">${list.map(e=>{const eventTheme=TH[e.t]||c;return `<article class="card"><div class="big">${eventTheme.e}</div><h3>${esc(e.title)}</h3>
+<span class="badge">${esc(eventTheme.n)}</span><div class="meta">📅 ${fmt(e.date)}</div><div class="meta">📍 ${esc(e.venue)}</div><div class="meta">by ${esc(e.org)} · ${e.seats} seats left</div>
+<div class="row"><span class="price">₹${e.price}</span><button class="btn" data-book="${e.id}" ${e.seats<1?'disabled':''}>${e.seats<1?'Sold out':'Book now'}</button></div></article>`}).join('')||'<p class="sub">No upcoming events yet. Check back later or try another category.</p>'}</div>`;
+$$('[data-all-events]').forEach(b=>b.onclick=showAllEvents);
 $$('[data-t]').forEach(b=>b.onclick=()=>setTheme(b.dataset.t));
 $$('[data-book]').forEach(b=>b.onclick=()=>openEvent(b.dataset.book))}
 
@@ -153,5 +155,5 @@ const qc=q.querySelector('canvas');if(qc)x.drawImage(qc,430,40,220,220);
 $('#dl').onclick=()=>c.toBlob(b=>{const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='ticket-'+t.id+'.png';document.body.appendChild(a);a.click();a.remove()},'image/png')}
 
 /* ---- start ---- */
-setTheme('halloween');
+setTheme('halloween',false);
 if(sb)sb.auth.onAuthStateChange((ev)=>{if(['INITIAL_SESSION','SIGNED_IN','SIGNED_OUT','USER_UPDATED'].includes(ev))setTimeout(refresh,0)});
