@@ -44,3 +44,8 @@ h1{font-size:clamp(32px,6vw,54px);line-height:1.05;margin:20px 0 10px;letter-spa
 #toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ac);color:var(--onac);padding:12px 18px;border-radius:12px;z-index:20;display:none;max-width:90%;font-weight:600}
 canvas#tc{width:100%;border-radius:12px;background:#fff}
 .note{font-size:13px;color:var(--mut)}
+.site-footer{border-top:1px solid var(--line);padding:24px 0 32px;margin-top:20px;color:var(--mut)}
+.site-footer h2{margin:0 0 6px;color:var(--ink);font-size:20px}
+.site-footer p{margin:6px 0}
+.site-footer a{color:var(--ac);text-decoration:underline;text-underline-offset:3px}
+.site-footer a:focus-visible{outline:3px solid var(--ac);outline-offset:3px}
