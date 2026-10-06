@@ -46,7 +46,7 @@ db.events=data.map(mapEv);db.events.forEach(e=>db.byId[e.id]=e)}
 async function loadUser(){db.user=null;db.tickets=[];if(!sb)return;
 const {data:{session}}=await sb.auth.getSession();if(!session)return;const a=session.user;
 const {data:p}=await sb.from('profiles').select('*').eq('id',a.id).maybeSingle();
-db.user={id:a.id,name:p?p.name:'Member',cat:p?p.category:'other',email:a.email||'',phone:(a.phone||'').replace(/^91/,''),verified:!!(a.phone_confirmed_at||a.email_confirmed_at),vkind:a.phone_confirmed_at?'Phone':'Email'};
+db.user={id:a.id,name:p?p.name:'Member',cat:p?p.category:'other',email:a.email||'',verified:!!a.email_confirmed_at};
 const {data:t}=await sb.from('tickets').select('id,event_id,user_id,created_at');db.tickets=t||[];
 const miss=[...new Set(db.tickets.map(x=>x.event_id))].filter(i=>!db.byId[i]);
 if(miss.length){const {data:ev}=await sb.from('events_public').select('*').in('id',miss);(ev||[]).forEach(r=>db.byId[r.id]=mapEv(r))}}
@@ -73,7 +73,7 @@ $$('[data-t]').forEach(b=>b.onclick=()=>setTheme(b.dataset.t));
 $$('[data-book]').forEach(b=>b.onclick=()=>openEvent(b.dataset.book))}
 
 function profile(u){const mine=db.tickets.filter(t=>t.user_id===u.id);
-let h=`<h1>${esc(u.name)}</h1><p><span class="badge">${CAT[u.cat]}</span>${u.verified?`<span class="badge">✔ ${u.vkind} verified</span>`:''}</p><p class="meta">${esc(u.email)}${u.phone?' · +91 '+esc(u.phone):''}</p>
+let h=`<h1>${esc(u.name)}</h1><p><span class="badge">${CAT[u.cat]}</span>${u.verified?'<span class="badge">✔ Email verified</span>':''}</p><p class="meta">${esc(u.email)}</p>
 <h2>My tickets</h2><div class="grid">${mine.map(t=>{const e=db.byId[t.event_id];return e?`<div class="card"><h3>${esc(e.title)}</h3><div class="meta">📅 ${fmt(e.date)}</div><div class="meta">📍 ${esc(e.venue)}</div><div class="meta">${t.id}</div><div class="row"><button class="btn" data-tk="${t.id}">View / download</button></div></div>`:''}).join('')||'<p class="sub">No tickets yet.</p>'}</div>`;
 if(u.cat==='organizer'){const own=db.events.filter(e=>e.oid===u.id);
 h+=`<h2>Create an event</h2><div class="card" style="max-width:460px"><div class="box" style="all:unset;display:block">
@@ -94,32 +94,23 @@ og.disabled=true;const {error}=await sb.from('events').insert({organizer_id:u.id
 if(error)return toast(error.message);toast('Event published! Everyone can now see it.');await loadEvents();render()}}}
 
 /* ---- login / register ---- */
-let A={mode:'login',method:'email',sent:null};
-function openAuth(mode){A.mode=mode;A.method='email';A.sent=null;$('#auth').classList.add('on');applyAuth()}
-function applyAuth(){const reg=A.mode==='register',ph=A.method==='phone';
+let A={mode:'login'};
+function openAuth(mode){A.mode=mode;$('#auth').classList.add('on');applyAuth()}
+function applyAuth(){const reg=A.mode==='register';
 $('#at').textContent=reg?'Create your account':'Welcome back';
 $$('.reg').forEach(x=>x.classList.toggle('hide',!reg));
-['#f_email','#f_pass'].forEach(s=>$(s).classList.toggle('hide',ph));
-['#f_phone','#otprow'].forEach(s=>$(s).classList.toggle('hide',!ph));
 $('#go').textContent=reg?'Create account':'Login';$('#sw').textContent=reg?'I have an account':'Create account';
-$('#anote').textContent=ph?'We send a code by SMS. Phone login needs an SMS provider connected in Supabase.':(reg?'Use at least 6 characters for the password.':'');
-$$('#tabs .chip').forEach(b=>b.setAttribute('aria-pressed',b.dataset.m===A.method))}
-$$('#tabs .chip').forEach(b=>b.onclick=()=>{A.method=b.dataset.m;applyAuth()});
+$('#anote').textContent=reg?'Use a valid email address and a password of at least 6 characters.':'';
 $('#sw').onclick=()=>{A.mode=A.mode==='login'?'register':'login';applyAuth()};
-$('#sendotp').onclick=async()=>{if(!sb)return toast('Add your Supabase keys in config.js first.');const p=$('#f_phone').value.trim();
-if(!/^\d{10}$/.test(p))return toast('Enter a valid 10-digit phone number.');
-const {error}=await sb.auth.signInWithOtp({phone:'+91'+p,options:{shouldCreateUser:A.mode==='register',data:{name:$('#f_name').value.trim()||'Member',category:$('#f_cat').value}}});
-if(error)return toast(error.message);A.sent=p;toast('OTP sent to +91 '+p)};
 $('#go').onclick=async()=>{if(!sb)return toast('Add your Supabase keys in config.js first.');
-const reg=A.mode==='register',name=$('#f_name').value.trim(),em=$('#f_email').value.trim().toLowerCase(),pw=$('#f_pass').value,ph=$('#f_phone').value.trim(),otp=$('#f_otp').value.trim();
+const reg=A.mode==='register',name=$('#f_name').value.trim(),em=$('#f_email').value.trim().toLowerCase(),pw=$('#f_pass').value;
 if(reg&&!name)return toast('Please enter your full name.');
-if(A.method==='phone'){if(A.sent!==ph)return toast('Send the OTP first.');
-const {error}=await sb.auth.verifyOtp({phone:'+91'+ph,token:otp,type:'sms'});if(error)return toast(error.message)}
-else if(reg){if(!/\S+@\S+\.\S+/.test(em)||pw.length<6)return toast('Enter a valid email and a password of 6+ characters.');
+if(reg){if(!/\S+@\S+\.\S+/.test(em)||pw.length<6)return toast('Enter a valid email and a password of 6+ characters.');
 const {data,error}=await sb.auth.signUp({email:em,password:pw,options:{data:{name,category:$('#f_cat').value}}});if(error)return toast(error.message);
 if(!data.session){closeAll();return toast('Check your email and click the confirmation link, then log in.')}}
 else{const {error}=await sb.auth.signInWithPassword({email:em,password:pw});if(error)return toast(error.message)}
 closeAll();view='home';toast('Welcome!')};
+}
 function closeAll(){$$('.modal').forEach(m=>m.classList.remove('on'))}
 document.addEventListener('click',e=>{if(e.target.matches('[data-close]')||e.target.classList.contains('modal'))closeAll()});
 
@@ -139,7 +130,7 @@ order=data;
 }catch(error){b.disabled=false;return toast(error.message||'Could not start checkout. Please try again.')}
 let paymentReturned=false;
 try{const checkout=new Razorpay({key:order.key_id,amount:order.amount,currency:order.currency,name:'Occasion Pass',description:order.event_title,order_id:order.order_id,
-prefill:{name:u.name,email:u.email,contact:u.phone?`+91${u.phone}`:undefined},
+prefill:{name:u.name,email:u.email},
 handler:async response=>{paymentReturned=true;try{const {data:result,error:verifyError}=await sb.functions.invoke('verify-payment',{body:{reservation_id:order.reservation_id,razorpay_order_id:response.razorpay_order_id,razorpay_payment_id:response.razorpay_payment_id,razorpay_signature:response.razorpay_signature}});
 if(verifyError||!result||result.error){closeAll();await loadEvents();await loadUser();render();return toast(result?.error||'Payment verification is pending. Check My tickets before trying to pay again.')}
 closeAll();await loadEvents();await loadUser();render();

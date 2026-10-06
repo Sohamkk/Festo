@@ -5,8 +5,6 @@ create table if not exists profiles(
   id uuid primary key references auth.users on delete cascade,
   name text not null,
   category text not null check (category in ('student','professional','other','organizer')),
-  phone text unique,
-  phone_verified boolean not null default false,
   created_at timestamptz default now());
 
 create table if not exists events(
@@ -36,7 +34,7 @@ alter table tickets  enable row level security;
 drop policy if exists "read own profile" on profiles;
 create policy "read own profile" on profiles for select using (auth.uid() = id);
 drop policy if exists "create own profile" on profiles;
-create policy "create own profile" on profiles for insert with check (auth.uid() = id and phone_verified = false);
+create policy "create own profile" on profiles for insert with check (auth.uid() = id);
 
 -- Everyone can see events. Only organizers can create them, and only edit their own.
 drop policy if exists "events are public" on events;
@@ -66,12 +64,11 @@ create function seats_left(eid uuid) returns int language sql security definer s
 -- 1) Creates a profile automatically when someone signs up (name and category come from the sign-up form).
 create or replace function handle_new_user() returns trigger language plpgsql security definer set search_path = public as $$
 begin
-  insert into profiles(id, name, category, phone)
+  insert into profiles(id, name, category)
   values (new.id,
     coalesce(nullif(new.raw_user_meta_data->>'name',''), 'Member'),
     case when new.raw_user_meta_data->>'category' in ('student','professional','other','organizer')
-         then new.raw_user_meta_data->>'category' else 'other' end,
-    nullif(new.phone,''));
+         then new.raw_user_meta_data->>'category' else 'other' end);
   return new;
 end $$;
 drop trigger if exists on_auth_user_created on auth.users;

@@ -9,18 +9,10 @@ The website already uses Supabase for accounts, events, and tickets. Follow this
 
 What this gives you: events are public to read, only organizers can create them, and every created event appears for all visitors on its festival page.
 
-## Step 2. Accounts and OTP login
+## Step 2. Email accounts
 1. Open **Authentication > Providers**.
-2. Start with **Email**: turn on "Confirm email" so people verify through a link or code. This is free.
-3. For phone OTP, turn on **Phone** and connect an SMS provider. Supabase supports Twilio, MessageBird, Vonage and TextLocal. Add the provider's keys in the same screen.
-4. India has a rule that SMS senders must be registered on DLT (TRAI). You register your business name as a sender ID and get your OTP message template approved. This usually takes a few days, so start it early. MSG91 and Twilio both guide you through it.
-5. While waiting, use Supabase's test phone numbers (Authentication > Phone) so you can build and test with fixed OTPs.
-
-In code, the calls replace the demo OTP in `app.js`:
-- Send OTP: `supabase.auth.signInWithOtp({ phone: '+91XXXXXXXXXX' })`
-- Verify OTP: `supabase.auth.verifyOtp({ phone, token, type: 'sms' })`
-- Email and password: `supabase.auth.signUp({ email, password })` and `signInWithPassword`
-- After sign-up, save the name and category in the `profiles` table.
+2. Keep **Email** enabled. Turn on **Confirm email** to require verification links before users can sign in (or turn it off for local testing).
+3. The website uses email and password for registration and login. The profile name and category are saved from the sign-up form.
 
 ## Step 3. Connect the website to Supabase
 1. Confirm `config.js` contains the Supabase **Project URL** (the base project URL, without `/rest/v1/`) and the anon/public key.
@@ -66,7 +58,7 @@ Payments go to the single Razorpay account configured above; this version does n
 ## Step 6. Go live
 1. Upload the three website files to **Vercel** or **Netlify** (both free). Drag and drop works.
 2. Buy a domain (about ₹800 a year) and connect it in the hosting settings.
-3. Add Privacy Policy, Terms, and Refund Policy pages. Razorpay and SMS providers will ask for them.
+3. Add Privacy Policy, Terms, and Refund Policy pages. Razorpay may ask for them.
 4. Talk to a CA about GST and about how you invoice commissions.
 
 ## Before your first paid event

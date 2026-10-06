@@ -9,7 +9,7 @@ security definer
 set search_path = public
 as $$
 begin
-  insert into profiles(id, name, category, phone)
+  insert into profiles(id, name, category)
   values (
     new.id,
     coalesce(nullif(new.raw_user_meta_data->>'name', ''), 'Member'),
@@ -17,8 +17,7 @@ begin
       when new.raw_user_meta_data->>'category' in ('student','professional','other','organizer')
         then new.raw_user_meta_data->>'category'
       else 'other'
-    end,
-    nullif(new.phone, '')
+    end
   )
   on conflict (id) do nothing;
   return new;
@@ -29,6 +28,10 @@ drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function handle_new_user();
+
+drop policy if exists "create own profile" on profiles;
+create policy "create own profile" on profiles
+  for insert with check (auth.uid() = id);
 
 drop function if exists book_ticket_test(uuid);
 

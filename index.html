@@ -17,14 +17,11 @@
 
 <div class="modal" id="auth"><div class="box">
 <h3 id="at">Login</h3>
-<div class="tabs" id="tabs"><button class="chip" data-m="email" aria-pressed="true">Email</button><button class="chip" data-m="phone" aria-pressed="false">Phone OTP</button></div>
 <input id="f_name" class="reg" placeholder="Full name" autocomplete="name">
 <select id="f_cat" class="reg" aria-label="I am">
 <option value="student">I am a student</option><option value="professional">I am a working professional</option><option value="other">Other</option><option value="organizer">I organise events</option></select>
 <input id="f_email" type="email" placeholder="Email" autocomplete="email">
 <input id="f_pass" type="password" placeholder="Password (min 6 characters)" autocomplete="current-password">
-<input id="f_phone" inputmode="numeric" placeholder="Phone number (10 digits)" autocomplete="tel">
-<div id="otprow"><button class="btn ghost" id="sendotp" type="button">Send OTP</button><input id="f_otp" inputmode="numeric" placeholder="6-digit OTP"></div>
 <div class="row"><button class="btn" id="go" type="button">Continue</button><button class="link" id="sw" type="button"></button></div>
 <p class="note" id="anote"></p>
 <button class="link" data-close>Close</button>

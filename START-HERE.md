@@ -32,5 +32,5 @@ In Supabase, set Authentication > URL Configuration > Site URL to the address wh
 ## Important
 - Do not accept real payments until the Razorpay account is approved, Edge Function secrets are configured, the database migration is applied, and the webhook is receiving `payment.captured` events.
 - Organizer ticket sales are collected into the single platform Razorpay account. This setup does not make organizer payouts.
-- Phone OTP only works after you connect an SMS provider (SETUP-GUIDE.md, Step 2). Email login works straight away.
+- Sign-in and registration use email and password only (SETUP-GUIDE.md, Step 2).
 - Only the anon key goes in `config.js`. Never put the service_role key in the website.
