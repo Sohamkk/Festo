@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="halloween">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Occasion Pass – events for every festival</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="fx" aria-hidden="true"></div>
+<div class="wrap">
+<nav><div class="logo">🎟️ Occasion Pass</div><div id="navr"></div></nav>
+<main id="main"></main>
+</div>
+
+<div class="modal" id="auth"><div class="box">
+<h3 id="at">Login</h3>
+<div class="tabs" id="tabs"><button class="chip" data-m="email" aria-pressed="true">Email</button><button class="chip" data-m="phone" aria-pressed="false">Phone OTP</button></div>
+<input id="f_name" class="reg" placeholder="Full name" autocomplete="name">
+<select id="f_cat" class="reg" aria-label="I am">
+<option value="student">I am a student</option><option value="professional">I am a working professional</option><option value="other">Other</option><option value="organizer">I organise events</option></select>
+<input id="f_email" type="email" placeholder="Email" autocomplete="email">
+<input id="f_pass" type="password" placeholder="Password (min 6 characters)" autocomplete="current-password">
+<input id="f_phone" inputmode="numeric" placeholder="Phone number (10 digits)" autocomplete="tel">
+<div id="otprow"><button class="btn ghost" id="sendotp" type="button">Send OTP</button><input id="f_otp" inputmode="numeric" placeholder="6-digit OTP"></div>
+<div class="row"><button class="btn" id="go" type="button">Continue</button><button class="link" id="sw" type="button"></button></div>
+<p class="note" id="anote"></p>
+<button class="link" data-close>Close</button>
+</div></div>
+
+<div class="modal" id="ev"><div class="box" id="evb"></div></div>
+<div class="modal" id="tk"><div class="box"><h3>Your ticket</h3><canvas id="tc"></canvas><div id="qr" class="hide"></div>
+<div class="row"><button class="btn" id="dl" type="button">Download ticket</button><button class="link" data-close>Close</button></div>
+<p class="note" id="dlnote"></p></div></div>
+<div id="toast" role="status"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
