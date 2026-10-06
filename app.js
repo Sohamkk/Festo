@@ -39,10 +39,11 @@ function toast(m){const t=$('#toast');t.textContent=m;t.style.display='block';cl
 
 /* ---- data from Supabase ---- */
 const mapEv=r=>({id:r.id,t:r.festival,title:r.title,date:r.starts_at,venue:r.venue,price:r.price_inr,seats:r.seats_left,org:r.organizer_name,oid:r.organizer_id});
-async function loadEvents(){if(!sb)return;
-const {data,error}=await sb.from('events_public').select('*').gte('starts_at',new Date().toISOString()).order('starts_at');
-if(error)return toast(/events_public|schema cache/i.test(error.message)?'Database not set up yet: run the full database.sql in Supabase SQL Editor (see START-HERE.md).':'Could not load events: '+error.message);
-db.events=data.map(mapEv);db.events.forEach(e=>db.byId[e.id]=e)}
+async function loadEvents(){if(!sb)return false;
+try{const {data,error}=await sb.from('events_public').select('*').gte('starts_at',new Date().toISOString()).order('starts_at');
+if(error){toast(/events_public|schema cache/i.test(error.message)?'Database not set up yet: run the database setup SQL in Supabase SQL Editor (see START-HERE.md).':'Could not load events: '+error.message);return false}
+db.events=data.map(mapEv);db.byId=Object.fromEntries(db.events.map(e=>[e.id,e]));return true
+}catch(error){toast('Could not load events: '+error.message);return false}}
 async function loadUser(){db.user=null;db.tickets=[];if(!sb)return;
 const {data:{session}}=await sb.auth.getSession();if(!session)return;const a=session.user;
 const {data:p}=await sb.from('profiles').select('*').eq('id',a.id).maybeSingle();
@@ -51,6 +52,11 @@ const {data:t}=await sb.from('tickets').select('id,event_id,user_id,created_at')
 const miss=[...new Set(db.tickets.map(x=>x.event_id))].filter(i=>!db.byId[i]);
 if(miss.length){const {data:ev}=await sb.from('events_public').select('*').in('id',miss);(ev||[]).forEach(r=>db.byId[r.id]=mapEv(r))}}
 async function refresh(){await loadEvents();await loadUser();render()}
+let eventsRefreshInProgress=false;
+async function refreshEvents(){if(!sb||eventsRefreshInProgress)return;
+eventsRefreshInProgress=true;
+try{const ok=await loadEvents();if(ok&&view==='home')home();return ok}
+finally{eventsRefreshInProgress=false}}
 
 /* ---- theme + layout ---- */
 let theme='halloween',view='home',eventFilter='all';
@@ -66,11 +72,13 @@ function home(){const c=TH[theme];
 const list=db.events.filter(e=>eventFilter==='all'||e.t===eventFilter);
 $('#main').innerHTML=(sb?'':`<div class="card" style="margin-top:10px"><b>Setup needed:</b> open <code>config.js</code> and paste your Supabase Project URL and anon key. See START-HERE.md.</div>`)+
 `<h1>${eventFilter==='all'?'Upcoming events':`${c.e} ${c.n} events`}</h1><p class="sub">Browse events in every category or filter by occasion. Book an event by a verified organizer and get a QR ticket.</p>
+<p><button class="btn ghost" id="refresh-events" type="button">Refresh events</button> <span class="note">New events are checked automatically.</span></p>
 <div class="chips" role="group" aria-label="Filter by occasion"><button class="chip" data-all-events aria-pressed="${eventFilter==='all'}">✨ All events</button>${Object.keys(TH).map(k=>`<button class="chip" data-t="${k}" aria-pressed="${k===eventFilter}">${TH[k].e} ${TH[k].n}</button>`).join('')}</div>
 <div class="grid">${list.map(e=>{const eventTheme=TH[e.t]||c;return `<article class="card"><div class="big">${eventTheme.e}</div><h3>${esc(e.title)}</h3>
 <span class="badge">${esc(eventTheme.n)}</span><div class="meta">📅 ${fmt(e.date)}</div><div class="meta">📍 ${esc(e.venue)}</div><div class="meta">by ${esc(e.org)} · ${e.seats} seats left</div>
 <div class="row"><span class="price">₹${e.price}</span><button class="btn" data-book="${e.id}" ${e.seats<1?'disabled':''}>${e.seats<1?'Sold out':'Book now'}</button></div></article>`}).join('')||'<p class="sub">No upcoming events yet. Check back later or try another category.</p>'}</div>`;
 $$('[data-all-events]').forEach(b=>b.onclick=showAllEvents);
+$('#refresh-events').onclick=async()=>{const b=$('#refresh-events');b.disabled=true;b.textContent='Refreshing…';try{const ok=await refreshEvents();if(ok)toast('Events updated.')}finally{if($('#refresh-events')){$('#refresh-events').disabled=false;$('#refresh-events').textContent='Refresh events'}}};
 $$('[data-t]').forEach(b=>b.onclick=()=>setTheme(b.dataset.t));
 $$('[data-book]').forEach(b=>b.onclick=()=>openEvent(b.dataset.book))}
 
@@ -157,3 +165,5 @@ $('#dl').onclick=()=>c.toBlob(b=>{const a=document.createElement('a');a.href=URL
 /* ---- start ---- */
 setTheme('halloween',false);
 if(sb)sb.auth.onAuthStateChange((ev)=>{if(['INITIAL_SESSION','SIGNED_IN','SIGNED_OUT','USER_UPDATED'].includes(ev))setTimeout(refresh,0)});
+setInterval(()=>{if(document.visibilityState==='visible'&&view==='home')refreshEvents()},20000);
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&view==='home')refreshEvents()});

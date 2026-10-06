@@ -26,7 +26,7 @@ In Supabase, set Authentication > URL Configuration > Site URL to the address wh
 ## Publish an event and sell a ticket
 1. Complete the Razorpay and Supabase Edge Function setup in `SETUP-GUIDE.md` (Razorpay Test Mode is suitable for testing).
 2. Register as an **Organizer**, open **Organizer dashboard**, and create an event. Select its category/occasion, date and time, venue, ticket price, and available ticket count.
-3. Open the site in a second browser (or private window), choose the event category, and register as a Student or Member.
+3. Open the same deployed website in a second browser (or private window), choose **All events**, and register as a Student or Member. The event list refreshes automatically every 20 seconds; use **Refresh events** to check immediately after publishing.
 4. Select the event and complete Razorpay Checkout. The server verifies the captured payment before it creates the ticket. The QR ticket appears in the account and can be downloaded; it is also available from the profile later.
 
 ## Important
