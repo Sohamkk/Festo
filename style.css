@@ -1,4 +1,4 @@
-:root{--bg:#140a1f;--ink:#f5e9ff;--mut:#b9a6d0;--card:#231433;--line:#3d2a57;--ac:#ff7a1a;--onac:#1a0a00;
+:root{--bg:#1c0f05;--ink:#fff3df;--mut:#d2b98f;--card:#2c1a0a;--line:#4d3216;--ac:#ffb020;--onac:#1c0f05;
 box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 [data-theme=diwali]{--bg:#1c0f05;--ink:#fff3df;--mut:#d2b98f;--card:#2c1a0a;--line:#4d3216;--ac:#ffb020;--onac:#1c0f05}
 [data-theme=christmas]{--bg:#0c1f17;--ink:#f0fff6;--mut:#9fcbb4;--card:#14352a;--line:#24553f;--ac:#ff4d57;--onac:#fff}

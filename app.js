@@ -59,7 +59,7 @@ try{const ok=await loadEvents();if(ok&&view==='home')home();return ok}
 finally{eventsRefreshInProgress=false}}
 
 /* ---- theme + layout ---- */
-let theme='halloween',view='home',eventFilter='all';
+let theme='diwali',view='home',eventFilter='all';
 function setTheme(t,filterEvents=true){theme=t;if(filterEvents)eventFilter=t;document.documentElement.dataset.theme=t;colors(t);const c=TH[t],fx=$('#fx');fx.className=c.up?'up':'';fx.innerHTML='';
 for(let i=0;i<16;i++){const s=document.createElement('span');s.textContent=c.fx[i%c.fx.length];s.style.left=Math.random()*100+'%';s.style.fontSize=(16+Math.random()*22)+'px';s.style.animationDuration=(9+Math.random()*10)+'s';s.style.animationDelay=(-Math.random()*15)+'s';fx.appendChild(s)}render()}
 function showAllEvents(){eventFilter='all';render()}
@@ -76,7 +76,7 @@ $('#main').innerHTML=(sb?'':`<div class="card" style="margin-top:10px"><b>Setup 
 <div class="chips" role="group" aria-label="Filter by occasion"><button class="chip" data-all-events aria-pressed="${eventFilter==='all'}">✨ All events</button>${Object.keys(TH).map(k=>`<button class="chip" data-t="${k}" aria-pressed="${k===eventFilter}">${TH[k].e} ${TH[k].n}</button>`).join('')}</div>
 <div class="grid">${list.map(e=>{const eventTheme=TH[e.t]||c;return `<article class="card"><div class="big">${eventTheme.e}</div><h3>${esc(e.title)}</h3>
 <span class="badge">${esc(eventTheme.n)}</span><div class="meta">📅 ${fmt(e.date)}</div><div class="meta">📍 ${esc(e.venue)}</div><div class="meta">by ${esc(e.org)} · ${e.seats} seats left</div>
-<div class="row"><span class="price">₹${e.price}</span><button class="btn" data-book="${e.id}" ${e.seats<1?'disabled':''}>${e.seats<1?'Sold out':'Book now'}</button></div></article>`}).join('')||'<p class="sub">No upcoming events yet. Check back later or try another category.</p>'}</div>`;
+<div class="row"><span class="price">₹${e.price}</span><button class="btn" data-book="${e.id}" ${e.seats<1?'disabled':''}>${e.seats<1?'Sold out':'Book now'}</button></div></article>`}).join('')||(eventFilter==='all'?'<p class="sub">No upcoming events yet. Check back later.</p>':'<p class="sub">No events in this category yet. <button class="link" data-all-events type="button">Show all events</button></p>')}</div>`;
 $$('[data-all-events]').forEach(b=>b.onclick=showAllEvents);
 $('#refresh-events').onclick=async()=>{const b=$('#refresh-events');b.disabled=true;b.textContent='Refreshing…';try{const ok=await refreshEvents();if(ok)toast('Events updated.')}finally{if($('#refresh-events')){$('#refresh-events').disabled=false;$('#refresh-events').textContent='Refresh events'}}};
 $$('[data-t]').forEach(b=>b.onclick=()=>setTheme(b.dataset.t));
@@ -94,14 +94,21 @@ h+=`<h2>Create an event</h2><div class="card" style="max-width:460px"><div class
 <label for="o_p">Ticket price (INR)</label><input id="o_p" type="number" min="1" step="1" placeholder="Ticket price in ₹" required>
 <label for="o_s">Available tickets</label><input id="o_s" type="number" min="1" step="1" placeholder="Number of seats" required>
 <button class="btn" id="o_go" type="button">Publish event</button></div></div>
-<h3>My upcoming events</h3><div class="grid">${own.map(e=>{const n=db.tickets.filter(t=>t.event_id===e.id).length;return`<div class="card"><h3>${esc(e.title)}</h3><div class="meta">${TH[e.t]?TH[e.t].n:''} · 📅 ${fmt(e.date)}</div><div class="meta">📍 ${esc(e.venue)}</div><div class="meta">${n} sold · ₹${n*e.price} collected</div></div>`}).join('')||'<p class="sub">You have not published an event yet.</p>'}</div>`}
+<h3>My upcoming events</h3><div class="grid">${own.map(e=>{const n=db.tickets.filter(t=>t.event_id===e.id).length;return`<div class="card"><h3>${esc(e.title)}</h3><div class="meta">${TH[e.t]?TH[e.t].n:''} · 📅 ${fmt(e.date)}</div><div class="meta">📍 ${esc(e.venue)}</div><div class="meta">${n} sold · ₹${n*e.price} collected</div><div class="row"><button class="btn ghost" data-del="${e.id}" type="button">Delete event</button></div></div>`}).join('')||'<p class="sub">You have not published an event yet.</p>'}</div>`}
 h+=`<p><button class="btn ghost" id="lo">Log out</button></p>`;$('#main').innerHTML=h;
 $$('[data-tk]').forEach(b=>b.onclick=()=>showTicket(b.dataset.tk));
+$$('[data-del]').forEach(b=>b.onclick=()=>deleteEvent(b.dataset.del));
 $('#lo').onclick=async()=>{await sb.auth.signOut();view='home'};
 const og=$('#o_go');if(og){$('#o_th').value=theme;og.onclick=async()=>{const t=$('#o_t').value.trim(),d=$('#o_d').value,v=$('#o_v').value.trim(),p=Number($('#o_p').value),s=Number($('#o_s').value),startsAt=new Date(d);
 if(!t||!d||!v||!Number.isFinite(startsAt.getTime())||startsAt<=new Date()||!Number.isInteger(p)||p<1||!Number.isInteger(s)||s<1)return toast('Enter an event name, future date/time, venue, whole-rupee price, and ticket count.');
 og.disabled=true;const {error}=await sb.from('events').insert({organizer_id:u.id,festival:$('#o_th').value,title:t,starts_at:new Date(d).toISOString(),venue:v,price_inr:p,seats:s});og.disabled=false;
 if(error)return toast(error.message);toast('Event published! Everyone can now see it.');await loadEvents();render()}}}
+
+async function deleteEvent(id){const e=db.byId[id];
+if(!e||!confirm('Delete "'+e.title+'"? This cannot be undone.'))return;
+const {error}=await sb.rpc('delete_own_event',{p_event_id:id});
+if(error)return toast(error.message);
+toast('Event deleted.');await loadEvents();render()}
 
 /* ---- login / register ---- */
 let A={mode:'login'};
@@ -163,7 +170,7 @@ const qc=q.querySelector('canvas');if(qc)x.drawImage(qc,430,40,220,220);
 $('#dl').onclick=()=>c.toBlob(b=>{const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='ticket-'+t.id+'.png';document.body.appendChild(a);a.click();a.remove()},'image/png')}
 
 /* ---- start ---- */
-setTheme('halloween',false);
+setTheme('diwali',false);
 if(sb)sb.auth.onAuthStateChange((ev)=>{if(['INITIAL_SESSION','SIGNED_IN','SIGNED_OUT','USER_UPDATED'].includes(ev))setTimeout(refresh,0)});
 setInterval(()=>{if(document.visibilityState==='visible'&&view==='home')refreshEvents()},20000);
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&view==='home')refreshEvents()});
