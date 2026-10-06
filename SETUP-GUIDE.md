@@ -1,11 +1,6 @@
-# Occasion Pass: from prototype to a real website
+# Occasion Pass: Supabase and Razorpay setup
 
-The files in this folder:
-- `index.html`, `style.css`, `app.js`: the website. Open `index.html` in a browser to try it.
-- `database.sql`: the database tables and security rules for Supabase.
-- `SETUP-GUIDE.md`: this guide.
-
-Right now `app.js` saves data in each visitor's own browser. That is why an event an organizer creates is not yet visible to other people. Steps 1 to 6 below fix this.
+The website already uses Supabase for accounts, events, and tickets. Follow this guide to configure the Supabase project and enable Razorpay checkout, server-side payment verification, and the payment webhook.
 
 ## Step 1. Create the database (free, about 15 minutes)
 1. Go to supabase.com and create an account, then click **New project**. Choose a strong database password and a region close to India (Mumbai if offered).
@@ -27,23 +22,41 @@ In code, the calls replace the demo OTP in `app.js`:
 - Email and password: `supabase.auth.signUp({ email, password })` and `signInWithPassword`
 - After sign-up, save the name and category in the `profiles` table.
 
-## Step 3. Connect the website to the database
-1. Add this line in `index.html` before `app.js`: `<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>`
-2. In `app.js`, create the client with your Project URL and anon key.
-3. Replace the browser-saving parts with database calls:
-   - Show events: `supabase.from('events').select('*').eq('festival', theme)`
-   - Organizer creates an event: `supabase.from('events').insert({...})`
-   - My tickets: `supabase.from('tickets').select('*, events(*)')`
-4. Test with two different browsers: create an event as an organizer in one, and open the festival page in the other. It should appear.
+## Step 3. Connect the website to Supabase
+1. Confirm `config.js` contains the Supabase **Project URL** (the base project URL, without `/rest/v1/`) and the anon/public key.
+2. The site already uses Supabase Auth, the `events_public` view, and the `events` and `tickets` tables. The organizer dashboard publishes categorized events, and attendees can see them under the matching occasion.
+3. Test with two different browsers: publish an event as an organizer in one, then confirm it appears under its category in the other.
 
 ## Step 4. Real payments with Razorpay
-1. Create a Razorpay account and complete business KYC. You can build and test with **Test Mode** before KYC is approved.
-2. Never mark a ticket as paid from the website. The website opens Razorpay Checkout, and your **server** confirms the payment.
-3. In Supabase, create two **Edge Functions**:
-   - `create-order`: creates a Razorpay order for the event price.
-   - `payment-webhook`: Razorpay calls it after a successful payment. It checks the signature, checks seats are left, and then inserts the ticket into `tickets` using the service_role key.
-4. Keep your Razorpay secret key only inside Edge Function secrets.
-5. To pay organizers, look at Razorpay Route (marketplace payouts). It needs approval, so ask Razorpay about it early. You keep your commission and the rest goes to the organizer.
+1. Create a Razorpay account. Start with **Test Mode** and copy its Key ID and Key Secret.
+2. In Supabase SQL Editor, run the `RAZORPAY CHECKOUT` section at the bottom of `database.sql`. If this is a new project, run the whole file instead. This installs temporary seat reservations and removes the old test-only free-ticket function.
+3. Install the Supabase CLI, sign in, and link this project from the project folder:
+   ```sh
+   npx supabase login
+   npx supabase link --project-ref YOUR_PROJECT_REF
+   ```
+4. Save Razorpay credentials as **Edge Function secrets**. Never put the Key Secret or the Supabase service-role key in `config.js` or browser code:
+   ```sh
+   npx supabase secrets set RAZORPAY_KEY_ID=rzp_test_your_key_id RAZORPAY_KEY_SECRET=your_test_key_secret
+   ```
+   Supabase provides `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` to Edge Functions automatically.
+5. Deploy the three functions:
+   ```sh
+   npx supabase functions deploy create-order
+   npx supabase functions deploy verify-payment
+   npx supabase functions deploy payment-webhook
+   ```
+6. In Razorpay Dashboard > **Account & Settings > Webhooks**, add:
+   `https://YOUR_PROJECT_REF.supabase.co/functions/v1/payment-webhook`
+   Subscribe to `payment.captured`. Create a webhook secret and save that exact value in Supabase:
+   ```sh
+   npx supabase secrets set RAZORPAY_WEBHOOK_SECRET=your_webhook_secret
+   ```
+   The webhook function is configured to skip Supabase JWT verification; it validates Razorpay's webhook signature instead.
+7. Keep the Supabase Project URL and anon/public key in `config.js`. The `create-order` function calculates the event price from the database; the browser cannot choose the amount. Razorpay signatures and captured payment status are verified on the server before a ticket is created.
+8. Run the complete flow in Razorpay **Test Mode**: create an event as an organizer, book it as a student/member, complete the test checkout, then verify that the QR ticket appears and can be downloaded.
+
+Payments go to the single Razorpay account configured above; this version does not automatically split or pay out funds to organizers. Razorpay Route marketplace approval and a payout design are required for that.
 
 ## Step 5. QR check-in at the gate
 1. The ticket QR already holds the ticket ID.

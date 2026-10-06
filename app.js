@@ -57,7 +57,7 @@ let theme='halloween',view='home';
 function setTheme(t){theme=t;document.documentElement.dataset.theme=t;colors(t);const c=TH[t],fx=$('#fx');fx.className=c.up?'up':'';fx.innerHTML='';
 for(let i=0;i<16;i++){const s=document.createElement('span');s.textContent=c.fx[i%c.fx.length];s.style.left=Math.random()*100+'%';s.style.fontSize=(16+Math.random()*22)+'px';s.style.animationDuration=(9+Math.random()*10)+'s';s.style.animationDelay=(-Math.random()*15)+'s';fx.appendChild(s)}render()}
 function render(){const u=me();
-$('#navr').innerHTML=u?`<button class="btn ghost" id="nh">Events</button> <button class="btn" id="np">${esc(u.name.split(' ')[0])} · Profile</button>`:`<button class="btn" id="nl">Login / Register</button>`;
+$('#navr').innerHTML=u?`<button class="btn ghost" id="nh">Events</button> <button class="btn" id="np">${u.cat==='organizer'?'Organizer dashboard':`${esc(u.name.split(' ')[0])} · Profile`}</button>`:`<button class="btn" id="nl">Login / Register</button>`;
 if(u){$('#nh').onclick=()=>{view='home';render()};$('#np').onclick=()=>{view='profile';render()}}else{$('#nl').onclick=()=>openAuth('login')}
 view==='profile'&&u?profile(u):home()}
 
@@ -67,7 +67,7 @@ $('#main').innerHTML=(sb?'':`<div class="card" style="margin-top:10px"><b>Setup 
 `<h1>${c.e} ${c.n} events</h1><p class="sub">Pick an occasion, book an event by a verified organizer, and get a QR ticket for entry.</p>
 <div class="chips" role="group" aria-label="Choose occasion">${Object.keys(TH).map(k=>`<button class="chip" data-t="${k}" aria-pressed="${k===theme}">${TH[k].e} ${TH[k].n}</button>`).join('')}</div>
 <div class="grid">${list.map(e=>`<article class="card"><div class="big">${c.e}</div><h3>${esc(e.title)}</h3>
-<div class="meta">📅 ${fmt(e.date)}</div><div class="meta">📍 ${esc(e.venue)}</div><div class="meta">by ${esc(e.org)} · ${e.seats} seats left</div>
+<span class="badge">${esc(TH[e.t].n)}</span><div class="meta">📅 ${fmt(e.date)}</div><div class="meta">📍 ${esc(e.venue)}</div><div class="meta">by ${esc(e.org)} · ${e.seats} seats left</div>
 <div class="row"><span class="price">₹${e.price}</span><button class="btn" data-book="${e.id}" ${e.seats<1?'disabled':''}>${e.seats<1?'Sold out':'Book now'}</button></div></article>`).join('')||'<p class="sub">No events yet for this occasion. When an organizer creates one, it will appear here for everyone.</p>'}</div>`;
 $$('[data-t]').forEach(b=>b.onclick=()=>setTheme(b.dataset.t));
 $$('[data-book]').forEach(b=>b.onclick=()=>openEvent(b.dataset.book))}
@@ -76,16 +76,20 @@ function profile(u){const mine=db.tickets.filter(t=>t.user_id===u.id);
 let h=`<h1>${esc(u.name)}</h1><p><span class="badge">${CAT[u.cat]}</span>${u.verified?`<span class="badge">✔ ${u.vkind} verified</span>`:''}</p><p class="meta">${esc(u.email)}${u.phone?' · +91 '+esc(u.phone):''}</p>
 <h2>My tickets</h2><div class="grid">${mine.map(t=>{const e=db.byId[t.event_id];return e?`<div class="card"><h3>${esc(e.title)}</h3><div class="meta">📅 ${fmt(e.date)}</div><div class="meta">📍 ${esc(e.venue)}</div><div class="meta">${t.id}</div><div class="row"><button class="btn" data-tk="${t.id}">View / download</button></div></div>`:''}).join('')||'<p class="sub">No tickets yet.</p>'}</div>`;
 if(u.cat==='organizer'){const own=db.events.filter(e=>e.oid===u.id);
-h+=`<h2>Organizer panel</h2><div class="card" style="max-width:460px"><div class="box" style="all:unset;display:block">
-<input id="o_t" placeholder="Event title"><select id="o_th" aria-label="Festival">${Object.keys(TH).map(k=>`<option value="${k}">${TH[k].n}</option>`).join('')}</select>
-<input id="o_d" type="datetime-local" aria-label="Date and time"><input id="o_v" placeholder="Venue address"><input id="o_p" type="number" min="0" placeholder="Ticket price in ₹"><input id="o_s" type="number" min="1" placeholder="Number of seats">
+h+=`<h2>Create an event</h2><div class="card" style="max-width:460px"><div class="box" style="all:unset;display:block">
+<label for="o_t">Event name</label><input id="o_t" placeholder="Event title" required>
+<label for="o_th">Event category / occasion</label><select id="o_th" aria-label="Event category">${Object.keys(TH).map(k=>`<option value="${k}">${TH[k].n}</option>`).join('')}</select>
+<label for="o_d">Date and time</label><input id="o_d" type="datetime-local" aria-label="Date and time" required>
+<label for="o_v">Location / venue</label><input id="o_v" placeholder="Venue name and address" required>
+<label for="o_p">Ticket price (INR)</label><input id="o_p" type="number" min="1" step="1" placeholder="Ticket price in ₹" required>
+<label for="o_s">Available tickets</label><input id="o_s" type="number" min="1" step="1" placeholder="Number of seats" required>
 <button class="btn" id="o_go" type="button">Publish event</button></div></div>
 <h3>My upcoming events</h3><div class="grid">${own.map(e=>{const n=db.tickets.filter(t=>t.event_id===e.id).length;return`<div class="card"><h3>${esc(e.title)}</h3><div class="meta">${TH[e.t]?TH[e.t].n:''} · 📅 ${fmt(e.date)}</div><div class="meta">📍 ${esc(e.venue)}</div><div class="meta">${n} sold · ₹${n*e.price} collected</div></div>`}).join('')||'<p class="sub">You have not published an event yet.</p>'}</div>`}
 h+=`<p><button class="btn ghost" id="lo">Log out</button></p>`;$('#main').innerHTML=h;
 $$('[data-tk]').forEach(b=>b.onclick=()=>showTicket(b.dataset.tk));
 $('#lo').onclick=async()=>{await sb.auth.signOut();view='home'};
-const og=$('#o_go');if(og){$('#o_th').value=theme;og.onclick=async()=>{const t=$('#o_t').value.trim(),d=$('#o_d').value,v=$('#o_v').value.trim(),p=+$('#o_p').value,s=+$('#o_s').value;
-if(!t||!d||!v||!s||p<0||isNaN(p))return toast('Fill title, date, venue, price and seats.');
+const og=$('#o_go');if(og){$('#o_th').value=theme;og.onclick=async()=>{const t=$('#o_t').value.trim(),d=$('#o_d').value,v=$('#o_v').value.trim(),p=Number($('#o_p').value),s=Number($('#o_s').value),startsAt=new Date(d);
+if(!t||!d||!v||!Number.isFinite(startsAt.getTime())||startsAt<=new Date()||!Number.isInteger(p)||p<1||!Number.isInteger(s)||s<1)return toast('Enter an event name, future date/time, venue, whole-rupee price, and ticket count.');
 og.disabled=true;const {error}=await sb.from('events').insert({organizer_id:u.id,festival:$('#o_th').value,title:t,starts_at:new Date(d).toISOString(),venue:v,price_inr:p,seats:s});og.disabled=false;
 if(error)return toast(error.message);toast('Event published! Everyone can now see it.');await loadEvents();render()}}}
 
@@ -122,13 +126,29 @@ document.addEventListener('click',e=>{if(e.target.matches('[data-close]')||e.tar
 /* ---- booking + ticket ---- */
 function openEvent(id){const u=me();if(!u){toast('Please log in to book.');return openAuth('login')}
 const e=db.byId[id],c=TH[e.t];
-$('#evb').innerHTML=`<div class="big">${c.e}</div><h3>${esc(e.title)}</h3><div class="meta">📅 ${fmt(e.date)}</div><div class="meta">📍 ${esc(e.venue)}</div><div class="meta">Organizer: ${esc(e.org)}</div>
-<p>Ticket for <b>${esc(u.name)}</b></p><div class="row"><span class="price">₹${e.price}</span><button class="btn" id="pay">Book ticket</button></div>
-<p class="note">TEST MODE: no real payment is taken yet. Razorpay is added in the next step (see START-HERE.md).</p><button class="link" data-close>Cancel</button>`;
+$('#evb').innerHTML=`<div class="big">${c.e}</div><h3>${esc(e.title)}</h3><span class="badge">${esc(c.n)}</span><div class="meta">📅 ${fmt(e.date)}</div><div class="meta">📍 ${esc(e.venue)}</div><div class="meta">Organizer: ${esc(e.org)}</div>
+<p>Ticket for <b>${esc(u.name)}</b></p><div class="row"><span class="price">₹${e.price}</span><button class="btn" id="pay" ${e.seats<1?'disabled':''}>${e.seats<1?'Sold out':'Pay and get ticket'}</button></div>
+<p class="note">Secure payment is processed by Razorpay. Your QR ticket is issued after payment is verified.</p><button class="link" data-close>Cancel</button>`;
 $('#ev').classList.add('on');
-$('#pay').onclick=async()=>{const b=$('#pay');b.disabled=true;const {data,error}=await sb.rpc('book_ticket_test',{eid:id});
-if(error){b.disabled=false;return toast(error.message)}
-await loadEvents();await loadUser();closeAll();render();showTicket(data)}}
+$('#pay').onclick=async()=>{const b=$('#pay');b.disabled=true;
+if(!window.Razorpay){b.disabled=false;return toast('Razorpay Checkout did not load. Check your connection and try again.')}
+let order;
+try{const {data,error}=await sb.functions.invoke('create-order',{body:{event_id:id}});
+if(error||!data){b.disabled=false;return toast(error?.message||'Could not start checkout. Please try again.')}
+order=data;
+}catch(error){b.disabled=false;return toast(error.message||'Could not start checkout. Please try again.')}
+let paymentReturned=false;
+try{const checkout=new Razorpay({key:order.key_id,amount:order.amount,currency:order.currency,name:'Occasion Pass',description:order.event_title,order_id:order.order_id,
+prefill:{name:u.name,email:u.email,contact:u.phone?`+91${u.phone}`:undefined},
+handler:async response=>{paymentReturned=true;try{const {data:result,error:verifyError}=await sb.functions.invoke('verify-payment',{body:{reservation_id:order.reservation_id,razorpay_order_id:response.razorpay_order_id,razorpay_payment_id:response.razorpay_payment_id,razorpay_signature:response.razorpay_signature}});
+if(verifyError||!result){closeAll();await loadEvents();await loadUser();render();return toast('Payment verification is pending. Check your tickets before trying to pay again.')}
+closeAll();await loadEvents();await loadUser();render();
+if(result.ticket_id)showTicket(result.ticket_id);
+else toast(result.message||'Payment was received, but a ticket could not be issued. Please contact support.');
+}catch(error){toast(error.message||'Payment may have been received. Check My tickets or contact support before trying again.')} },
+modal:{ondismiss:()=>{if(!paymentReturned)b.disabled=false}}});
+checkout.open()}catch(error){b.disabled=false;toast(error.message||'Could not open Razorpay Checkout. Please try again.')}}
+}
 function showTicket(tid){const t=db.tickets.find(x=>x.id===tid),e=db.byId[t.event_id],u=me();
 $('#tk').classList.add('on');const q=$('#qr');q.innerHTML='';
 new QRCode(q,{text:`OCCASIONPASS|${t.id}|${e.id}|${u.name}`,width:220,height:220,correctLevel:QRCode.CorrectLevel.M});
