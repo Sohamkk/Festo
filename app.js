@@ -41,7 +41,7 @@ function toast(m){const t=$('#toast');t.textContent=m;t.style.display='block';cl
 const mapEv=r=>({id:r.id,t:r.festival,title:r.title,date:r.starts_at,venue:r.venue,price:r.price_inr,seats:r.seats_left,org:r.organizer_name,oid:r.organizer_id});
 async function loadEvents(){if(!sb)return;
 const {data,error}=await sb.from('events_public').select('*').gte('starts_at',new Date().toISOString()).order('starts_at');
-if(error)return toast('Could not load events: '+error.message);
+if(error)return toast(/events_public|schema cache/i.test(error.message)?'Database not set up yet: run the full database.sql in Supabase SQL Editor (see START-HERE.md).':'Could not load events: '+error.message);
 db.events=data.map(mapEv);db.events.forEach(e=>db.byId[e.id]=e)}
 async function loadUser(){db.user=null;db.tickets=[];if(!sb)return;
 const {data:{session}}=await sb.auth.getSession();if(!session)return;const a=session.user;
@@ -134,19 +134,20 @@ $('#pay').onclick=async()=>{const b=$('#pay');b.disabled=true;
 if(!window.Razorpay){b.disabled=false;return toast('Razorpay Checkout did not load. Check your connection and try again.')}
 let order;
 try{const {data,error}=await sb.functions.invoke('create-order',{body:{event_id:id}});
-if(error||!data){b.disabled=false;return toast(error?.message||'Could not start checkout. Please try again.')}
+if(error||!data||data.error){b.disabled=false;return toast(data?.error||error?.message||'Could not start checkout. Please try again.')}
 order=data;
 }catch(error){b.disabled=false;return toast(error.message||'Could not start checkout. Please try again.')}
 let paymentReturned=false;
 try{const checkout=new Razorpay({key:order.key_id,amount:order.amount,currency:order.currency,name:'Occasion Pass',description:order.event_title,order_id:order.order_id,
 prefill:{name:u.name,email:u.email,contact:u.phone?`+91${u.phone}`:undefined},
 handler:async response=>{paymentReturned=true;try{const {data:result,error:verifyError}=await sb.functions.invoke('verify-payment',{body:{reservation_id:order.reservation_id,razorpay_order_id:response.razorpay_order_id,razorpay_payment_id:response.razorpay_payment_id,razorpay_signature:response.razorpay_signature}});
-if(verifyError||!result){closeAll();await loadEvents();await loadUser();render();return toast('Payment verification is pending. Check your tickets before trying to pay again.')}
+if(verifyError||!result||result.error){closeAll();await loadEvents();await loadUser();render();return toast(result?.error||'Payment verification is pending. Check My tickets before trying to pay again.')}
 closeAll();await loadEvents();await loadUser();render();
 if(result.ticket_id)showTicket(result.ticket_id);
-else toast(result.message||'Payment was received, but a ticket could not be issued. Please contact support.');
+else toast(result.message||'No ticket was issued. If money was debited it will be refunded automatically.');
 }catch(error){toast(error.message||'Payment may have been received. Check My tickets or contact support before trying again.')} },
 modal:{ondismiss:()=>{if(!paymentReturned)b.disabled=false}}});
+checkout.on('payment.failed',r=>{b.disabled=false;toast('Payment failed: '+(r.error&&r.error.description||'bank declined the payment')+'. No ticket was issued. Please try again.')});
 checkout.open()}catch(error){b.disabled=false;toast(error.message||'Could not open Razorpay Checkout. Please try again.')}}
 }
 function showTicket(tid){const t=db.tickets.find(x=>x.id===tid),e=db.byId[t.event_id],u=me();

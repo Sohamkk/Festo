@@ -1,5 +1,16 @@
 # Occasion Pass: connected to Supabase
 
+## Fix: "Could not find the table 'public.events_public' in the schema cache"
+The database was not fully set up. Open Supabase > SQL Editor > New query, paste the **whole** `database.sql`, press **Run**, then reload the website. The file is safe to run again on an existing project.
+
+## Payments need the Edge Functions
+The folder `supabase/functions` contains `create-order`, `verify-payment` and `payment-webhook`. Deploy them as described in SETUP-GUIDE.md Step 4. Without them the Pay button cannot open Razorpay.
+
+## How booking works
+- Payment succeeds and is verified on the server: the ticket with QR is shown and saved in Profile.
+- Payment fails (bank decline, cancelled): no ticket is created and the seat is released. The student can try again.
+- Money taken but the event sold out meanwhile: refunded automatically.
+
 ## Run it in 5 steps
 1. Create a Supabase project (supabase.com > New project).
 2. SQL Editor > New query > paste all of `database.sql` > Run for a new project. For an existing project, apply any missing `ADDED IN V2` migration and the `RAZORPAY CHECKOUT` section at the bottom.

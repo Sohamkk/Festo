@@ -1,6 +1,7 @@
--- Occasion Pass database. Run this in Supabase: SQL Editor > New query > paste > Run.
+-- Occasion Pass database. Safe to re-run: SQL Editor > New query > paste ALL > Run.
+-- ('events_public not found in schema cache' means this file was not run completely.)
 
-create table profiles(
+create table if not exists profiles(
   id uuid primary key references auth.users on delete cascade,
   name text not null,
   category text not null check (category in ('student','professional','other','organizer')),
@@ -8,7 +9,7 @@ create table profiles(
   phone_verified boolean not null default false,
   created_at timestamptz default now());
 
-create table events(
+create table if not exists events(
   id uuid primary key default gen_random_uuid(),
   organizer_id uuid not null references profiles(id),
   festival text not null,
@@ -19,7 +20,7 @@ create table events(
   seats int not null check (seats > 0),
   created_at timestamptz default now());
 
-create table tickets(
+create table if not exists tickets(
   id text primary key,
   event_id uuid not null references events(id),
   user_id uuid not null references profiles(id),
@@ -32,18 +33,25 @@ alter table profiles enable row level security;
 alter table events   enable row level security;
 alter table tickets  enable row level security;
 
-create policy "read own profile"   on profiles for select using (auth.uid() = id);
+drop policy if exists "read own profile" on profiles;
+create policy "read own profile" on profiles for select using (auth.uid() = id);
+drop policy if exists "create own profile" on profiles;
 create policy "create own profile" on profiles for insert with check (auth.uid() = id and phone_verified = false);
 
 -- Everyone can see events. Only organizers can create them, and only edit their own.
+drop policy if exists "events are public" on events;
 create policy "events are public" on events for select using (true);
+drop policy if exists "organizers create" on events;
 create policy "organizers create" on events for insert with check (
   organizer_id = auth.uid() and exists (select 1 from profiles p where p.id = auth.uid() and p.category = 'organizer'));
-create policy "organizers edit own"   on events for update using (organizer_id = auth.uid());
+drop policy if exists "organizers edit own" on events;
+create policy "organizers edit own" on events for update using (organizer_id = auth.uid());
+drop policy if exists "organizers delete own" on events;
 create policy "organizers delete own" on events for delete using (organizer_id = auth.uid());
 
 -- People see their own tickets, organizers see tickets for their events.
 -- No insert policy on purpose: tickets are created only by the server after payment succeeds.
+drop policy if exists "own or organizer tickets" on tickets;
 create policy "own or organizer tickets" on tickets for select using (
   user_id = auth.uid() or exists (select 1 from events e where e.id = event_id and e.organizer_id = auth.uid()));
 
@@ -141,11 +149,9 @@ begin
   if not found then raise exception 'Event not found'; end if;
   if v_event.starts_at <= now() then raise exception 'This event has already started'; end if;
   if v_event.price_inr < 1 then raise exception 'Paid checkout requires a ticket price of at least ₹1'; end if;
-  if exists (
-    select 1 from event_reservations r
-      where r.event_id = v_event.id and r.user_id = v_user_id
-        and r.status = 'pending' and r.expires_at > now()
-  ) then raise exception 'You already have a checkout in progress for this event'; end if;
+  -- Retry after a failed/abandoned payment: release the old checkout (a late payment is still honoured or refunded).
+  update event_reservations set status = 'failed'
+    where event_id = v_event.id and user_id = v_user_id and status = 'pending';
 
   select count(*) into v_sold from tickets t
     where t.event_id = v_event.id and t.status <> 'refunded';
@@ -189,7 +195,7 @@ begin
     return query select 'paid'::text, v_ticket_id;
     return;
   end if;
-  if v_reservation.status <> 'pending' then
+  if v_reservation.status not in ('pending','failed') then
     return query select v_reservation.status, null::text;
     return;
   end if;
@@ -229,4 +235,6 @@ end $$;
 revoke all on function claim_event_refund(uuid) from public, anon, authenticated;
 grant execute on function claim_event_refund(uuid) to service_role;
 
+grant usage on schema public to anon, authenticated;
+grant select on public.events_public to anon, authenticated;
 notify pgrst, 'reload schema';
