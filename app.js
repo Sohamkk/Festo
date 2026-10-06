@@ -107,7 +107,9 @@ if(error)return toast(error.message);toast('Event published! Everyone can now se
 async function deleteEvent(id){const e=db.byId[id];
 if(!e||!confirm('Delete "'+e.title+'"? This cannot be undone.'))return;
 const {error}=await sb.rpc('delete_own_event',{p_event_id:id});
-if(error)return toast(error.message);
+if(error)return toast(/delete_own_event|schema cache/i.test(error.message)
+?'Delete function is missing in Supabase. Run database-delete-event-fix.sql in the SQL Editor for this project, then reload this page.'
+:error.message);
 toast('Event deleted.');await loadEvents();render()}
 
 /* ---- login / register ---- */

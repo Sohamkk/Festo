@@ -6,7 +6,7 @@ The website can reach Supabase, but the database view it reads has not been crea
 If you have already created the Occasion Pass tables, do not rerun the full file. Run `database-upgrade.sql` in SQL Editor instead. It does not recreate `profiles`, `events`, or `tickets`; it creates/grants `events_public`, installs the paid-booking schema, and refreshes the schema cache. It is safe to rerun if a prior migration attempt only partly completed.
 
 ## Fix: "Could not find the function public.delete_own_event in the schema cache"
-The organizer-delete database function has not been installed in Supabase yet. Run `database-delete-event-fix.sql` in **SQL Editor > New query**, then wait a few seconds and reload the website. This patch only adds the protected event-delete function and refreshes the schema cache; it does not recreate any tables.
+The organizer-delete database function is not installed in the Supabase project the website is using. In that exact project's **SQL Editor > New query**, run `database-delete-event-fix.sql`. Its final verification query should return `public.delete_own_event(uuid)` and `true`. Wait a few seconds and reload the site. If the verification query returns no function, SQL execution failed; read the SQL Editor error. If it returns the function and `true` but the website still reports a missing function, confirm **Project Settings > API > Exposed schemas** includes `public`, then reload the API schema cache or restart the project.
 
 ## Payments need the Edge Functions
 The folder `supabase/functions` contains `create-order`, `verify-payment` and `payment-webhook`. Deploy them as described in SETUP-GUIDE.md Step 4. Without them the Pay button cannot open Razorpay.

@@ -43,3 +43,11 @@ $$;
 revoke all on function public.delete_own_event(uuid) from public, anon;
 grant execute on function public.delete_own_event(uuid) to authenticated;
 notify pgrst, 'reload schema';
+
+select
+  to_regprocedure('public.delete_own_event(uuid)') as installed_function,
+  has_function_privilege(
+    'authenticated',
+    'public.delete_own_event(uuid)',
+    'EXECUTE'
+  ) as authenticated_can_execute;
