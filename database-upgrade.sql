@@ -196,7 +196,7 @@ grant select on public.events_public to anon, authenticated;
 -- organizers delete through this function, which refuses when money may be involved.
 drop policy if exists "organizers delete own" on events;
 
-create or replace function delete_own_event(p_event_id uuid)
+create or replace function public.delete_own_event(p_event_id uuid)
 returns void language plpgsql security definer set search_path = public as $$
 declare v_event events%rowtype;
 begin
@@ -214,7 +214,15 @@ begin
   end if;
   delete from events where id = p_event_id;
 end $$;
-revoke all on function delete_own_event(uuid) from public, anon;
-grant execute on function delete_own_event(uuid) to authenticated;
+revoke all on function public.delete_own_event(uuid) from public, anon;
+grant execute on function public.delete_own_event(uuid) to authenticated;
 
 notify pgrst, 'reload schema';
+
+select
+  to_regprocedure('public.delete_own_event(uuid)') as installed_function,
+  has_function_privilege(
+    'authenticated',
+    'public.delete_own_event(uuid)',
+    'EXECUTE'
+  ) as authenticated_can_execute;
