@@ -29,7 +29,7 @@ In code, the calls replace the demo OTP in `app.js`:
 
 ## Step 4. Real payments with Razorpay
 1. Create a Razorpay account. Start with **Test Mode** and copy its Key ID and Key Secret.
-2. In Supabase SQL Editor, run the `RAZORPAY CHECKOUT` section at the bottom of `database.sql`. If this is a new project, run the whole file instead. This installs temporary seat reservations and removes the old test-only free-ticket function.
+2. In Supabase SQL Editor, run the complete `RAZORPAY CHECKOUT` section at the bottom of `database.sql`, including its `events_public` view and grants. This installs the public event view, temporary seat reservations, refreshes the schema cache, and removes the old test-only free-ticket function. If this is a new project, run the whole file instead.
 3. Install the Supabase CLI, sign in, and link this project from the project folder:
    ```sh
    npx supabase login

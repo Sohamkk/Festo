@@ -123,6 +123,7 @@ select e.id, e.organizer_id, e.festival, e.title, e.starts_at, e.venue, e.price_
               where r.event_id = e.id and r.status = 'pending' and r.expires_at > now())::int
          as seats_left
 from events e join profiles p on p.id = e.organizer_id;
+grant select on public.events_public to anon, authenticated;
 
 create or replace function create_event_reservation(p_event_id uuid)
 returns table(reservation_id uuid, amount_paise bigint, event_title text)
@@ -227,3 +228,5 @@ begin
 end $$;
 revoke all on function claim_event_refund(uuid) from public, anon, authenticated;
 grant execute on function claim_event_refund(uuid) to service_role;
+
+notify pgrst, 'reload schema';
