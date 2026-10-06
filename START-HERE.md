@@ -3,7 +3,7 @@
 ## Fix: "Could not find the table 'public.events_public' in the schema cache"
 The website can reach Supabase, but the database view it reads has not been created. In Supabase, open **SQL Editor > New query**, paste the full `database.sql`, and press **Run** only if this is a new/empty project; then reload the website.
 
-If you have already created the Occasion Pass tables, do not rerun the full file: its initial `create table` statements are for a new project. Instead, run the `ADDED IN V2` section if it has not been applied, followed by the complete `RAZORPAY CHECKOUT` section at the bottom. That section creates/grants `events_public`, refreshes the schema cache, and installs the paid-booking tables and functions.
+If you have already created the Occasion Pass tables, do not rerun the full file. Run `database-upgrade.sql` in SQL Editor instead. It does not recreate `profiles`, `events`, or `tickets`; it creates/grants `events_public`, installs the paid-booking schema, and refreshes the schema cache. It is safe to rerun if a prior migration attempt only partly completed.
 
 ## Payments need the Edge Functions
 The folder `supabase/functions` contains `create-order`, `verify-payment` and `payment-webhook`. Deploy them as described in SETUP-GUIDE.md Step 4. Without them the Pay button cannot open Razorpay.
@@ -15,7 +15,7 @@ The folder `supabase/functions` contains `create-order`, `verify-payment` and `p
 
 ## Run it in 5 steps
 1. Create a Supabase project (supabase.com > New project).
-2. For a new project, run all of `database.sql` in SQL Editor. For an existing project, do not rerun the initial table-creation statements; apply any missing `ADDED IN V2` migration and then the complete `RAZORPAY CHECKOUT` section at the bottom.
+2. For a new project, run all of `database.sql` in SQL Editor. For an existing project, run `database-upgrade.sql` instead; do not rerun the initial table-creation statements.
 3. Authentication > Providers: keep **Email** on. For quick testing, turn **Confirm email** off (Authentication > Sign In / Providers > Email).
 4. Project Settings > API: copy the Project URL and the anon (publishable) key into `config.js`.
 5. Put the whole folder on Vercel or Netlify (drag and drop). You can also run it locally with: `npx serve .` inside this folder, then open the address it shows.

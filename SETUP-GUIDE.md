@@ -4,7 +4,7 @@ The website already uses Supabase for accounts, events, and tickets. Follow this
 
 ## Step 1. Create the database (free, about 15 minutes)
 1. Go to supabase.com and create an account, then click **New project**. Choose a strong database password and a region close to India (Mumbai if offered).
-2. Open **SQL Editor > New query**, paste everything from `database.sql`, and click **Run**. Do this full-file setup only for a new/empty project. If Occasion Pass tables already exist, apply only the missing migration sections described in `START-HERE.md`; do not rerun the initial `create table` statements.
+2. For a new/empty project, open **SQL Editor > New query**, paste all of `database.sql`, and click **Run**. If Occasion Pass tables already exist, run `database-upgrade.sql` instead; it does not recreate the existing tables.
 3. Open **Project Settings > API** and copy the **Project URL** and the **anon public key**. The anon key is safe to put in website code. The **service_role key** is secret: never put it in the website.
 
 What this gives you: events are public to read, only organizers can create them, and every created event appears for all visitors on its festival page.
@@ -29,7 +29,7 @@ In code, the calls replace the demo OTP in `app.js`:
 
 ## Step 4. Real payments with Razorpay
 1. Create a Razorpay account. Start with **Test Mode** and copy its Key ID and Key Secret.
-2. In Supabase SQL Editor, run the complete `RAZORPAY CHECKOUT` section at the bottom of `database.sql`, including its `events_public` view and grants. This installs the public event view, temporary seat reservations, refreshes the schema cache, and removes the old test-only free-ticket function. If this is a new project, run the whole file instead.
+2. In Supabase SQL Editor, run `database-upgrade.sql` for an existing Occasion Pass project. This installs the public event view, seat reservations, and payment functions; refreshes the schema cache; and removes the old test-only free-ticket function. For a new project, run all of `database.sql` instead.
 3. Install the Supabase CLI, sign in, and link this project from the project folder:
    ```sh
    npx supabase login
